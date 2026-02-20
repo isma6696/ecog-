@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Performance Status Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+        .arabic { direction: rtl; font-family: 'Arial', sans-serif; }
+        .card-choice { transition: all 0.2s ease; cursor: pointer; border: 1px solid #e2e8f0; background: white; }
+        .card-choice:hover { border-color: #2563eb; background-color: #f8fafc; transform: translateY(-1px); shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .img-container { width: 70px; height: 70px; overflow: hidden; border-radius: 12px; background: #cbd5e1; flex-shrink: 0; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; color: #64748b; }
+        .img-container img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-12">
+
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-center gap-1 mb-8 bg-white p-1.5 rounded-xl shadow-sm border border-slate-200 uppercase text-[10px] font-bold tracking-widest">
+            <button onclick="setLang('fr')" class="flex-1 py-2 rounded-lg transition" id="btn-fr">Français</button>
+            <button onclick="setLang('en')" class="flex-1 py-2 rounded-lg transition" id="btn-en">English</button>
+            <button onclick="setLang('ar')" class="flex-1 py-2 rounded-lg transition" id="btn-ar">العربية</button>
+        </div>
+
+        <div id="main-ui">
+            <header class="text-center mb-10">
+                <h1 id="txt-title" class="text-2xl font-black uppercase tracking-tighter text-slate-900 italic">Performance Status</h1>
+                <div class="h-1 w-12 bg-blue-600 mx-auto mt-2"></div>
+            </header>
+            <div id="options-list" class="space-y-3"></div>
+        </div>
+
+        <div id="result-screen" class="hidden">
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="bg-slate-900 p-4 text-center">
+                    <h2 id="txt-res-title" class="text-white text-[10px] uppercase font-bold tracking-[0.3em]">Évaluation Finale</h2>
+                </div>
+                <div class="p-8 md:p-10">
+                    <div class="flex justify-center mb-6">
+                        <div class="w-40 h-40 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
+                            <img id="res-img" src="" alt="Score Image" class="w-full h-full object-cover bg-slate-200">
+                        </div>
+                    </div>
+                    <div class="flex justify-center items-center gap-12 mb-10 text-center">
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">ECOG</p><p id="res-ecog" class="text-8xl font-black text-blue-600 leading-none">0</p></div>
+                        <div class="w-px h-20 bg-slate-100"></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Karnofsky</p><p id="res-k" class="text-4xl font-black text-slate-800 leading-none">100%</p></div>
+                    </div>
+                    <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-xl mb-10">
+                        <p id="res-comment" class="text-slate-800 font-semibold text-lg leading-relaxed"></p>
+                    </div>
+                    <button onclick="resetApp()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl uppercase text-xs tracking-widest">Nouvelle Évaluation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            fr: {
+                title: "Performance Status", res: "Rapport d'évaluation", reset: "Réinitialiser",
+                data: [
+                    { s: 0, k: "90-100%", img: "1.png", q: "Activités habituelles sans fatigue", c: "Patient en pleine autonomie et actif, aucune limitation physique." },
+                    { s: 1, k: "70-80%", img: "2.png", q: "Travail léger mais fatigue rapide", c: "Patient autonome mais fatigué, endurance réduite." },
+                    { s: 2, k: "50-60%", img: "3.png", q: "Autonomie limitée (aide fréquente)", c: "Incapable de travailler. Actif moins de 50% du temps d'éveil." },
+                    { s: 3, k: "30-40%", img: "4.png", q: "Besoin d'aide constante (alité >50%)", c: "Dépendance majeure. Alité ou au fauteuil la majorité du temps." },
+                    { s: 4, k: "10-20%", img: "5.png", q: "Totalement alité / Assistance totale", c: "Totalement dépendant. Soins de confort requis." }
+                ]
+            }
+            // Ajoutez English et Arabic si besoin ici
+        };
+
+        let currentLang = 'fr';
+
+        function renderOptions() {
+            const list = document.getElementById('options-list');
+            list.innerHTML = '';
+            translations[currentLang].data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "card-choice p-4 rounded-2xl flex items-center gap-4";
+                
+                // On ajoute un texte "Image" si le chargement échoue
+                const imgPart = `<div class="img-container">
+                    <img src="./${item.img}" alt="PS${item.s}" onerror="this.parentElement.innerHTML='Image<br>${item.img}';">
+                </div>`;
+                const textPart = `<div class="flex-1"><p class="text-[10px] font-bold text-blue-600 uppercase">ECOG ${item.s}</p><p class="text-sm font-semibold text-slate-700">${item.q}</p></div>`;
+                
+                card.innerHTML = imgPart + textPart;
+                card.onclick = () => showResult(item);
+                list.appendChild(card);
+            });
+        }
+
+        function showResult(item) {
+            document.getElementById('main-ui').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('res-ecog').innerText = item.s;
+            document.getElementById('res-k').innerText = item.k;
+            document.getElementById('res-comment').innerText = item.c;
+            document.getElementById('res-img').src = "./" + item.img;
+        }
+
+        function resetApp() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+        }
+
+        function setLang(l) { currentLang = l; renderOptions(); }
+        setLang('fr');
+    </script>
+</body>
+</html>
